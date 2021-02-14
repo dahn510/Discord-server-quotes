@@ -1,2 +1,2 @@
 # Discord-server-quotes
-api that gives quotes in discord server
+api that gives quotes in a discord server
