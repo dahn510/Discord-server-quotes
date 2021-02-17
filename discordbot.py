@@ -12,9 +12,9 @@ TOKEN = os.getenv('DISCORD_TOKEN')
 
 client = discord.Client()
 
-def connect_SQL_DB():
+#Connects to SQL server specified in .env file and returns connector
+def connect_SQL_DB(cnx):
 
-    #Connect to SQL server
     this_user=os.getenv('SQL_USER')
     this_password=os.getenv('SQL_PASSWORD')
     this_host=os.getenv('SQL_HOST')
@@ -33,10 +33,12 @@ def connect_SQL_DB():
             print(err)
 
     else:
+        return cnx
         
-        cnx.close()
 
-
+#Logs discord message to the server
+def log_message(message, cnx):
+    
 
 @client.event
 async def on_message(message):
