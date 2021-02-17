@@ -3,11 +3,40 @@ import os
 import discord
 from dotenv import load_dotenv
 
+import mysql.connector
+
+
 #Get token from .env
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 
 client = discord.Client()
+
+def connect_SQL_DB():
+
+    #Connect to SQL server
+    this_user=os.getenv('SQL_USER')
+    this_password=os.getenv('SQL_PASSWORD')
+    this_host=os.getenv('SQL_HOST')
+    this_database=os.getenv('SQL_DATABASE')
+
+    try:
+        cnx=mysql.connector.connect(user=this_user, password=this_password,
+                                    host=this_host, database=this_database)
+
+    except mysql.connector.Error as err:
+        if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+            print("Invalid username or password")
+        elif err.errno == errorcode.ER_BAD_DB_ERROR:
+            print("Database does not exist")
+        else:
+            print(err)
+
+    else:
+        
+        cnx.close()
+
+
 
 @client.event
 async def on_message(message):
@@ -33,5 +62,9 @@ async def on_ready():
         print(f'{guild.name} (id: {guild.id})')    
 
 
+
+
+#(main)===================================
+connect_SQL_DB();
 
 client.run(TOKEN)
