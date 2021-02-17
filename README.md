@@ -1,6 +1,8 @@
 # Discord-server-quotes
 api that gives quotes in a discord server
 
+**The project is not even half finished**
+
 
 .env file is required to import sensitive data such as your bot token
 
