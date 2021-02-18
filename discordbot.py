@@ -1,5 +1,7 @@
 import os
 
+import sys
+
 import discord
 from dotenv import load_dotenv
 
@@ -12,12 +14,12 @@ TOKEN = os.getenv('DISCORD_TOKEN')
 
 client = discord.Client()
 
-# Connects to SQL server specified in .env file and returns connector
-def get_connector(cnx):
+# get admin id
+admin = os.getenv('DISCORD_ADMIN')
 
-    # check if connector is already connected
-    if cnx.is_connected() is True:
-        return cnx
+
+# Connects to SQL server specified in .env file and returns connector
+def get_connector():
 
     # get login info
     this_user=os.getenv('SQL_USER')
@@ -42,29 +44,34 @@ def get_connector(cnx):
         return cnx
 
 
+
+
+
 # Replaces @mentions in the message with fakeName and returns the string
-def replace_mentions(message, fakeName)
+def replace_mentions(message, fakeName):
 
     # first get list of mentions in the message
-    mentions = message.mentions.name
+    mentions = message.mentions
 
     # different mentions will be replaced with index numbers
     # e.g. "@Lorian threw a ball to @Lothric" will be replaced with
     #      "@fakeName0 threw a ball to @fakeName2"
     fakeNameIndex = 0
 
-    new_msg = ''
+    new_msg = message.clean_content
 
-    for names in mentions:
-        replacement = fakename + fakeNameIndex
-        new_msg = message.content.replace(names, replacement)
+
+    for member in mentions:
+        replacement = fakeName + str(fakeNameIndex)
         fakeNameIndex += 1
+        new_msg = new_msg.replace(member.display_name, replacement)
 
     return new_msg
 
 
 # Takes message and stores it in database 
-def store_message(message)
+def store_message(message):
+    print(replace_mentions(message, 'Rammus'))
     
 
 @client.event
@@ -73,7 +80,20 @@ async def on_message(message):
     if message.author==client.user:
         return
 
-    print(f'{message.author}:', message.clean_content);
+    # process !shutdown command to safely disconnect and close
+    if message.content.startswith("!shutdown"):
+        if message.author.id==int(admin):
+            await client.close()
+            cnx.close()
+            sys.exit()
+
+        else:
+            print(type(message.author.id))
+            print(f'Warning: non-admin(id:{message.author.id} tried to invoke !shutdown command')
+
+
+    # print(f'{message.author}:', message.clean_content);
+    store_message(message)
 
 @client.event
 async def on_message_delete(message):
@@ -81,6 +101,7 @@ async def on_message_delete(message):
     if message.author==client.user:
         return
     print(f'(Deleted) {message.author}:', message.clean_content);
+
 
 @client.event
 async def on_ready():
@@ -94,8 +115,12 @@ async def on_ready():
 
 
 #(main)===================================
+try:
+    cnx = get_connector()
 
-# connect to SQL server first
-connect_SQL_DB()
+except Exception as err:
+    print(err)
+    sys.exit()
+
 
 client.run(TOKEN)
