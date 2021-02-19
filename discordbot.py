@@ -1,7 +1,6 @@
 import os
 
 import sys
-
 import discord
 from dotenv import load_dotenv
 
@@ -18,14 +17,14 @@ client = discord.Client()
 admin = os.getenv('DISCORD_ADMIN')
 
 
-# Connects to SQL server specified in .env file and returns connector
+# Connects to SQL server specified in .env file and returns connector/connection
 def get_connector():
 
     # get login info
-    this_user=os.getenv('SQL_USER')
-    this_password=os.getenv('SQL_PASSWORD')
-    this_host=os.getenv('SQL_HOST')
-    this_database=os.getenv('SQL_DATABASE')
+    this_user = os.getenv('SQL_USER')
+    this_password = os.getenv('SQL_PASSWORD')
+    this_host = os.getenv('SQL_HOST')
+    this_database = os.getenv('SQL_DATABASE')
 
     try:
         # login to database and get connector
@@ -41,13 +40,11 @@ def get_connector():
             print(err)
 
     else:
+        print("### Connection established to SQL server")
         return cnx
 
 
-
-
-
-# Replaces @mentions in the message with fakeName and returns the string
+# Replaces @ mentions in the message with fakeName and returns the string
 def replace_mentions(message, fakeName):
 
     # first get list of mentions in the message
@@ -71,18 +68,39 @@ def replace_mentions(message, fakeName):
 
 # Takes message and stores it in database 
 def store_message(message):
-    print(replace_mentions(message, 'Rammus'))
+    global cnx
+
+    # SQL insert statment
+    add_message = ("INSERT INTO messages (message) VALUES (%s)")
+
+    # replace @ mentions with 'Human'
+    data_message = replace_mentions(message, 'Human')
+    # limit string length since the database only accepts messages up to 2000 characters
+    data_message = (data_message[0:2000],)
+
+    # check if connector is connected
+    if cnx.is_connected() is False:
+        cnx = get_connector()
+
+    cursor = cnx.cursor()
     
+    # insert new message
+    cursor.execute(add_message, data_message)
+    # just to make sure data is committed to the database
+    cnx.commit()
+
+    cursor.close()
+
 
 @client.event
 async def on_message(message):
-    #Ignore message sent by this bot
-    if message.author==client.user:
+    # ignore message sent by this bot
+    if message.author == client.user:
         return
 
     # process !shutdown command to safely disconnect and close
     if message.content.startswith("!shutdown"):
-        if message.author.id==int(admin):
+        if message.author.id == int(admin):
             await client.close()
             cnx.close()
             sys.exit()
@@ -92,13 +110,13 @@ async def on_message(message):
             print(f'Warning: non-admin(id:{message.author.id} tried to invoke !shutdown command')
 
 
-    # print(f'{message.author}:', message.clean_content);
+    print(f'{message.author}:', message.clean_content);
     store_message(message)
 
 @client.event
 async def on_message_delete(message):
     # Ignore message sent by this bot
-    if message.author==client.user:
+    if message.author == client.user:
         return
     print(f'(Deleted) {message.author}:', message.clean_content);
 
@@ -114,13 +132,5 @@ async def on_ready():
 
 
 
-#(main)===================================
-try:
-    cnx = get_connector()
-
-except Exception as err:
-    print(err)
-    sys.exit()
-
-
+cnx = get_connector()
 client.run(TOKEN)
